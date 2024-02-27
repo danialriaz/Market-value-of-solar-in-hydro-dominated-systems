@@ -1,4 +1,4 @@
-# SPDX-FileCopyrightText: : 2023 The PyPSA-Eur Authors
+# SPDX-FileCopyrightText: : 2023-2024 The PyPSA-Eur Authors
 #
 # SPDX-License-Identifier: MIT
 
@@ -32,12 +32,12 @@ if config["enable"]["retrieve"] and config["enable"].get("retrieve_databundle", 
         output:
             protected(expand("data/bundle/{file}", file=datafiles)),
         log:
-            LOGS + "retrieve_databundle.log",
+            "logs/retrieve_databundle.log",
         resources:
             mem_mb=1000,
         retries: 2
         conda:
-            "../envs/environment.yaml"
+            "../envs/retrieve.yaml"
         script:
             "../scripts/retrieve_databundle.py"
 
@@ -50,12 +50,12 @@ if config["enable"].get("retrieve_irena"):
             onwind="data/existing_infrastructure/onwind_capacity_IRENA.csv",
             solar="data/existing_infrastructure/solar_capacity_IRENA.csv",
         log:
-            LOGS + "retrieve_irena.log",
+            logs("retrieve_irena.log"),
         resources:
             mem_mb=1000,
         retries: 2
         conda:
-            "../envs/environment.yaml"
+            "../envs/retrieve.yaml"
         script:
             "../scripts/retrieve_irena.py"
 
@@ -83,23 +83,19 @@ if config["enable"]["retrieve"] and config["enable"].get("retrieve_cutout", True
 if config["enable"]["retrieve"] and config["enable"].get("retrieve_cost_data", True):
 
     rule retrieve_cost_data:
-        input:
-            HTTP.remote(
-                "raw.githubusercontent.com/PyPSA/technology-data/{}/outputs/".format(
-                    config["costs"]["version"]
-                )
-                + "costs_{year}.csv",
-                keep_local=True,
-            ),
+        params:
+            version=config_provider("costs", "version"),
         output:
-            "data/costs_{year}.csv",
+            resources("costs_{year}.csv"),
         log:
-            LOGS + "retrieve_cost_data_{year}.log",
+            logs("retrieve_cost_data_{year}.log"),
         resources:
             mem_mb=1000,
         retries: 2
-        run:
-            move(input[0], output[0])
+        conda:
+            "../envs/retrieve.yaml"
+        script:
+            "../scripts/retrieve_cost_data.py"
 
 
 if config["enable"]["retrieve"] and config["enable"].get(
@@ -114,9 +110,9 @@ if config["enable"]["retrieve"] and config["enable"].get(
                 static=True,
             ),
         output:
-            RESOURCES + "natura.tiff",
+            resources("natura.tiff"),
         log:
-            LOGS + "retrieve_natura_raster.log",
+            logs("retrieve_natura_raster.log"),
         resources:
             mem_mb=5000,
         retries: 2
@@ -154,10 +150,10 @@ if config["enable"]["retrieve"] and config["enable"].get(
             protected(expand("data/bundle-sector/{files}", files=datafiles)),
             *datafolders,
         log:
-            LOGS + "retrieve_sector_databundle.log",
+            "logs/retrieve_sector_databundle.log",
         retries: 2
         conda:
-            "../envs/environment.yaml"
+            "../envs/retrieve.yaml"
         script:
             "../scripts/retrieve_sector_databundle.py"
 
@@ -173,14 +169,12 @@ if config["enable"]["retrieve"]:
 
     rule retrieve_gas_infrastructure_data:
         output:
-            protected(
-                expand("data/gas_network/scigrid-gas/data/{files}", files=datafiles)
-            ),
+            expand("data/gas_network/scigrid-gas/data/{files}", files=datafiles),
         log:
-            LOGS + "retrieve_gas_infrastructure_data.log",
+            "logs/retrieve_gas_infrastructure_data.log",
         retries: 2
         conda:
-            "../envs/environment.yaml"
+            "../envs/retrieve.yaml"
         script:
             "../scripts/retrieve_gas_infrastructure_data.py"
 
@@ -188,25 +182,19 @@ if config["enable"]["retrieve"]:
 if config["enable"]["retrieve"]:
 
     rule retrieve_electricity_demand:
-        input:
-            HTTP.remote(
-                "data.open-power-system-data.org/time_series/{version}/time_series_60min_singleindex.csv".format(
-                version="2019-06-05"
-                    if config["snapshots"]["end"] < "2019"
-                    else "2020-10-06"
-                ),
-                keep_local=True,
-                static=True,
-            ),
+        params:
+            versions=["2019-06-05", "2020-10-06"],
         output:
-            RESOURCES + "load_raw.csv",
+            "data/electricity_demand_raw.csv",
         log:
-            LOGS + "retrieve_electricity_demand.log",
+            "logs/retrieve_electricity_demand.log",
         resources:
             mem_mb=5000,
         retries: 2
-        run:
-            move(input[0], output[0])
+        conda:
+            "../envs/retrieve.yaml"
+        script:
+            "../scripts/retrieve_electricity_demand.py"
 
 
 if config["enable"]["retrieve"]:
@@ -221,7 +209,7 @@ if config["enable"]["retrieve"]:
         output:
             protected("data/shipdensity_global.zip"),
         log:
-            LOGS + "retrieve_ship_raster.log",
+            "logs/retrieve_ship_raster.log",
         resources:
             mem_mb=5000,
         retries: 2
@@ -316,7 +304,7 @@ if config["enable"]["retrieve"]:
                 layer_path = (
                     f"/vsizip/{params.folder}/WDPA_{bYYYY}_Public_shp_{i}.zip"
                 )
-                print(f"Adding layer {i+1} of 3 to combined output file.")
+                print(f"Adding layer {i + 1} of 3 to combined output file.")
                 shell("ogr2ogr -f gpkg -update -append {output.gpkg} {layer_path}")
 
     rule download_wdpa_marine:
@@ -340,7 +328,7 @@ if config["enable"]["retrieve"]:
             for i in range(3):
                 # vsizip is special driver for directly working with zipped shapefiles in ogr2ogr
                 layer_path = f"/vsizip/{params.folder}/WDPA_WDOECM_{bYYYY}_Public_marine_shp_{i}.zip"
-                print(f"Adding layer {i+1} of 3 to combined output file.")
+                print(f"Adding layer {i + 1} of 3 to combined output file.")
                 shell("ogr2ogr -f gpkg -update -append {output.gpkg} {layer_path}")
 
 
@@ -357,7 +345,7 @@ if config["enable"]["retrieve"]:
         output:
             "data/validation/emission-spot-primary-market-auction-report-2019-data.xls",
         log:
-            LOGS + "retrieve_monthly_co2_prices.log",
+            "logs/retrieve_monthly_co2_prices.log",
         resources:
             mem_mb=5000,
         retries: 2
@@ -371,11 +359,11 @@ if config["enable"]["retrieve"]:
         output:
             "data/validation/energy-price-trends-xlsx-5619002.xlsx",
         log:
-            LOGS + "retrieve_monthly_fuel_prices.log",
+            "logs/retrieve_monthly_fuel_prices.log",
         resources:
             mem_mb=5000,
         retries: 2
         conda:
-            "../envs/environment.yaml"
+            "../envs/retrieve.yaml"
         script:
             "../scripts/retrieve_monthly_fuel_prices.py"
