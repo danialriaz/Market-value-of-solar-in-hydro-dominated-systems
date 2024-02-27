@@ -1,4 +1,3 @@
-# SPDX-FileCopyrightText: : 2017-2023 The PyPSA-Eur Authors
 #
 # SPDX-License-Identifier: CC0-1.0
 
@@ -17,11 +16,11 @@ scenario:
   opts:
   - Co2L-1H
 
-countries: ['BE']
+countries: ['DE']
 
 snapshots:
-  start: "2013-03-01"
-  end: "2013-03-08"
+  start: "2020-03-01"
+  end: "2020-03-31"
 
 electricity:
   co2limit: 100.e+6
