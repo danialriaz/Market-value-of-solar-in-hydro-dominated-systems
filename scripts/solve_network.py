@@ -898,7 +898,7 @@ def extra_functionality(n, snapshots):
     pypsa_carriers = ["solar"] # "onwind", ["offwind-ac", "offwind-dc"], "solar rooftop", "modular nuclear"
     
     for carrier, pypsa_carrier in zip(carriers, pypsa_carriers):
-        value = 10 #cc.at[carrier, "value"]
+        value = 0.2 #cc.at[carrier, "value"]
         logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
         add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
 
@@ -993,7 +993,7 @@ if __name__ == "__main__":
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
     
-    n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0
+    n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0.1
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
