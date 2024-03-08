@@ -796,6 +796,36 @@ def add_pipe_retrofit_constraint(n):
 
     n.model.add_constraints(lhs == rhs, name="Link-pipe_retrofit")
 
+def add_capacity_constraint(n, const= 1, country="DE", carrier="solar"):
+    """
+    Upper bounds the total capacity for a carrier in a country 
+    i.e. let mask represents the intersection of country and carrier, then
+
+    n.generators.loc[mask]['p_nom'].sum() < const
+    """
+    if isinstance(carrier, str):
+        carrier = [carrier]
+
+    const = float(const)
+
+    mask = n.generators.bus.str.startswith(country) * (n.generators.carrier.isin(carrier))
+    index = n.generators.loc[mask].index
+
+    p_nom = n.model['Generator-p_nom'].loc[index]
+
+    n.model.add_constraints(
+        p_nom.sum() == const,
+        name=f"{country}_{'_'.join(carrier)}_capacity_constraint"
+        )
+
+    #p_nom_min = n.model['Generator-p_nom_min'].loc[index] 
+
+    #n.model.add_constraints(
+        #p_nom_min.sum() == const,
+        #name=f"{country}_{'_'.join(carrier)}_capacity_constraint_min"
+        #)
+
+
 
 def add_co2_atmosphere_constraint(n, snapshots):
     glcs = n.global_constraints[n.global_constraints.type == "co2_atmosphere"]
@@ -863,6 +893,14 @@ def extra_functionality(n, snapshots):
         module = importlib.import_module(module_name)
         custom_extra_functionality = getattr(module, module_name)
         custom_extra_functionality(n, snapshots, snakemake)
+
+    carriers = ["solar", "onwind", "offwind", "solar rooftop", "modular nuclear"]
+    pypsa_carriers = ["solar"] # "onwind", ["offwind-ac", "offwind-dc"], "solar rooftop", "modular nuclear"
+    
+    for carrier, pypsa_carrier in zip(carriers, pypsa_carriers):
+        value = 10 #cc.at[carrier, "value"]
+        logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
+        add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
 
 
 def solve_network(n, config, solving, **kwargs):
@@ -954,6 +992,8 @@ if __name__ == "__main__":
         planning_horizons=snakemake.params.planning_horizons,
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
+    
+    n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
