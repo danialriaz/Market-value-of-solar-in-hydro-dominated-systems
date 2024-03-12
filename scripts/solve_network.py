@@ -796,27 +796,27 @@ def add_pipe_retrofit_constraint(n):
 
     n.model.add_constraints(lhs == rhs, name="Link-pipe_retrofit")
 
-def add_capacity_constraint(n, const= 1, country="DE", carrier="solar"):
+# def add_capacity_constraint(n, const= 1, country="DE", carrier="solar"):
     """
     Upper bounds the total capacity for a carrier in a country 
     i.e. let mask represents the intersection of country and carrier, then
 
     n.generators.loc[mask]['p_nom'].sum() < const
     """
-    if isinstance(carrier, str):
-        carrier = [carrier]
+  #  if isinstance(carrier, str):
+  #      carrier = [carrier]
 
     const = float(const)
 
-    mask = n.generators.bus.str.startswith(country) * (n.generators.carrier.isin(carrier))
-    index = n.generators.loc[mask].index
+  #  mask = n.generators.bus.str.startswith(country) * (n.generators.carrier.isin(carrier))
+  #  index = n.generators.loc[mask].index
 
-    p_nom = n.model['Generator-p_nom'].loc[index]
+    #p_nom = n.model['Generator-p_nom'].loc[index]
 
-    n.model.add_constraints(
-        p_nom.sum() == const,
-        name=f"{country}_{'_'.join(carrier)}_capacity_constraint"
-        )
+    #n.model.add_constraints(
+    #    p_nom.sum() == const,
+    #    name=f"{country}_{'_'.join(carrier)}_capacity_constraint"
+    #    )
 
     #p_nom_min = n.model['Generator-p_nom_min'].loc[index] 
 
@@ -894,13 +894,19 @@ def extra_functionality(n, snapshots):
         custom_extra_functionality = getattr(module, module_name)
         custom_extra_functionality(n, snapshots, snakemake)
 
-    carriers = ["solar", "onwind", "offwind", "solar rooftop", "modular nuclear"]
-    pypsa_carriers = ["solar"] # "onwind", ["offwind-ac", "offwind-dc"], "solar rooftop", "modular nuclear"
+   # carriers = ["solar", "onwind", "offwind", "solar rooftop", "modular nuclear"]
+   # pypsa_carriers = ["solar"] # "onwind", ["offwind-ac", "offwind-dc"], "solar rooftop", "modular nuclear"
     
-    for carrier, pypsa_carrier in zip(carriers, pypsa_carriers):
-        value = 0.2 #cc.at[carrier, "value"]
-        logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
-        add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
+   # for carrier, pypsa_carrier in zip(carriers, pypsa_carriers):
+   #     value = 5 #cc.at[carrier, "value"]
+   #     logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
+   #     add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
+
+    carrier = "solar"
+    value = 10  # Set your desired value here
+    logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
+    index = n.generators[n.generators.carrier == carrier].index
+    n.generators.loc[index, 'p_nom'] = value
 
 
 def solve_network(n, config, solving, **kwargs):
@@ -993,7 +999,7 @@ if __name__ == "__main__":
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
     
-    n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0.1
+    # n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0.1
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
