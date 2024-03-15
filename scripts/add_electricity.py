@@ -415,13 +415,22 @@ def attach_wind_and_solar(
             else:
                 capital_cost = costs.at[car, "capital_cost"]
 
+
+            # DR: Additional code: set extendable to False for all generators by default
+            extendable = False
+            # DR: If the generator's carrier is in the list of extendable carriers, set extendable to True
+            if car in extendable_carriers["Generator"]:
+                extendable = True
+
+
             n.madd(
                 "Generator",
                 ds.indexes["bus"],
                 " " + car,
                 bus=ds.indexes["bus"],
                 carrier=car,
-                p_nom_extendable=car in extendable_carriers["Generator"],
+                p_nom_extendable=extendable,  # DR: Modified line: explicitly set p_nom_extendable
+               # p_nom_extendable=car in extendable_carriers["Generator"],
                 p_nom_max=ds["p_nom_max"].to_pandas(),
                 weight=ds["weight"].to_pandas(),
                 marginal_cost=costs.at[supcar, "marginal_cost"],

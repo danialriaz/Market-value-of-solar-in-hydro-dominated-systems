@@ -806,7 +806,7 @@ def add_pipe_retrofit_constraint(n):
   #  if isinstance(carrier, str):
   #      carrier = [carrier]
 
-    const = float(const)
+  #  const = float(const)
 
   #  mask = n.generators.bus.str.startswith(country) * (n.generators.carrier.isin(carrier))
   #  index = n.generators.loc[mask].index
@@ -902,11 +902,18 @@ def extra_functionality(n, snapshots):
    #     logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
    #     add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
 
-    carrier = "solar"
-    value = 10  # Set your desired value here
-    logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
-    index = n.generators[n.generators.carrier == carrier].index
-    n.generators.loc[index, 'p_nom'] = value
+    # DR: Set solar capacity to 10 MW
+    solar_value = 10
+    logger.info(f"Fixing solar total capacity: {solar_value:.2f} MW.")
+    solar_index = n.generators[n.generators.carrier == "solar"].index
+    # n.generators.loc[solar_index, 'p_nom'] = solar_value
+    n.generators.loc[solar_index, 'p_nom'] *= solar_value / n.generators.loc[solar_index, 'p_nom'].sum()
+
+    # DR: Set wind capacity to 15 MW
+    wind_value = 0
+    logger.info(f"Fixing wind total capacity: {wind_value:.2f} MW.")
+    wind_index = n.generators[n.generators.carrier == "onwind"].index
+    n.generators.loc[wind_index, 'p_nom'] = wind_value
 
 
 def solve_network(n, config, solving, **kwargs):
@@ -999,7 +1006,7 @@ if __name__ == "__main__":
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
     
-    # n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 0.1
+    # n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 20
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
