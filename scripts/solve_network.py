@@ -902,19 +902,19 @@ def extra_functionality(n, snapshots):
    #     logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
    #     add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
 
-    # DR: Set solar capacity to 10 MW
-    solar_value = 10
+    # DR: Set solar capacity to 10 GW
+    solar_value = 10000
     logger.info(f"Fixing solar total capacity: {solar_value:.2f} MW.")
     solar_index = n.generators[n.generators.carrier == "solar"].index
-    # n.generators.loc[solar_index, 'p_nom'] = solar_value
     n.generators.loc[solar_index, 'p_nom'] *= solar_value / n.generators.loc[solar_index, 'p_nom'].sum()
+    n.generators.loc[solar_index, 'p_nom_extendable'] = False
 
-    # DR: Set wind capacity to 15 MW
+    # DR: Set wind capacity to 0 MW
     wind_value = 0
     logger.info(f"Fixing wind total capacity: {wind_value:.2f} MW.")
-    wind_index = n.generators[n.generators.carrier == "onwind"].index
-    n.generators.loc[wind_index, 'p_nom'] = wind_value
-
+    wind_index = n.generators[n.generators.carrier.str.contains('wind')].index
+    n.generators.loc[wind_index, 'p_nom'] *= wind_value / n.generators.loc[wind_index, 'p_nom'].sum()
+    n.generators.loc[wind_index, 'p_nom_extendable'] = False
 
 def solve_network(n, config, solving, **kwargs):
     set_of_options = solving["solver"]["options"]
@@ -1006,7 +1006,6 @@ if __name__ == "__main__":
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
     
-    # n.generators.loc[n.generators.carrier == 'solar', 'p_nom_min'] = 20
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0
