@@ -849,6 +849,8 @@ def add_co2_atmosphere_constraint(n, snapshots):
 
             n.model.add_constraints(lhs <= rhs, name=f"GlobalConstraint-{name}")
 
+    
+
 
 def extra_functionality(n, snapshots):
     """
@@ -894,27 +896,7 @@ def extra_functionality(n, snapshots):
         custom_extra_functionality = getattr(module, module_name)
         custom_extra_functionality(n, snapshots, snakemake)
 
-   # carriers = ["solar", "onwind", "offwind", "solar rooftop", "modular nuclear"]
-   # pypsa_carriers = ["solar"] # "onwind", ["offwind-ac", "offwind-dc"], "solar rooftop", "modular nuclear"
     
-   # for carrier, pypsa_carrier in zip(carriers, pypsa_carriers):
-   #     value = 5 #cc.at[carrier, "value"]
-   #     logger.info(f"Fixing {carrier} total capacity: {value:.2f} MW.")
-   #     add_capacity_constraint(n, const= value, country="DE", carrier=pypsa_carrier)
-
-    # DR: Set solar capacity to 10 GW
-    solar_value = 10000
-    logger.info(f"Fixing solar total capacity: {solar_value:.2f} MW.")
-    solar_index = n.generators[n.generators.carrier == "solar"].index
-    n.generators.loc[solar_index, 'p_nom'] *= solar_value / n.generators.loc[solar_index, 'p_nom'].sum()
-    n.generators.loc[solar_index, 'p_nom_extendable'] = False
-
-    # DR: Set wind capacity to 0 MW
-    wind_value = 0
-    logger.info(f"Fixing wind total capacity: {wind_value:.2f} MW.")
-    wind_index = n.generators[n.generators.carrier.str.contains('wind')].index
-    n.generators.loc[wind_index, 'p_nom'] *= wind_value / n.generators.loc[wind_index, 'p_nom'].sum()
-    n.generators.loc[wind_index, 'p_nom_extendable'] = False
 
 def solve_network(n, config, solving, **kwargs):
     set_of_options = solving["solver"]["options"]
@@ -1006,6 +988,45 @@ if __name__ == "__main__":
         co2_sequestration_potential=snakemake.params["co2_sequestration_potential"],
     )
     
+
+    # DR: Set solar capacity to 0 GW
+    solar_value = 0
+    logger.info(f"Fixing solar total capacity: {solar_value:.2f} MW.")
+    solar_index = n.generators[n.generators.carrier == "solar"].index
+    n.generators.loc[solar_index, 'p_nom'] *= solar_value / n.generators.loc[solar_index, 'p_nom'].sum()
+    n.generators.loc[solar_index, 'p_nom_extendable'] = False
+
+    # # DR: Set wind capacity to 1 MW
+    wind_value = 1000
+    logger.info(f"Fixing wind total capacity: {wind_value:.2f} MW.")
+    wind_index = n.generators[n.generators.carrier.str.contains('wind')].index
+    n.generators.loc[wind_index, 'p_nom'] *= wind_value / n.generators.loc[wind_index, 'p_nom'].sum()
+    #n.generators_t.p.loc[:, wind_index] = 0
+    n.generators.loc[wind_index, 'p_nom_extendable'] = False
+
+    # DR: Set hydro capacity to 6.8 GW
+    hydro_value = 6800
+    # Get the index of hydro generators
+    hydro_index = n.generators[n.generators['carrier'].str.contains('hydro')].index
+    # Calculate the sum of existing hydro capacities
+    hydro_sum = n.generators.loc[hydro_index, 'p_nom'].sum()
+    # Check if the sum is not zero
+    if hydro_sum != 0:
+    # Update p_nom for hydro generators
+        n.generators.loc[hydro_index, 'p_nom'] *= hydro_value / hydro_sum
+    else:      
+    # If sum is zero, set p_nom for all hydro generators to hydro_value
+        n.generators.loc[hydro_index, 'p_nom'] = hydro_value
+    # Set p_nom_extendable to False for hydro generators
+    n.generators.loc[hydro_index, 'p_nom_extendable'] = False
+
+    # DR: Set biomass cap
+    biomass_value = 10439
+    logger.info(f"Fixing biomass total capacity: {biomass_value:.2f} MW.")
+    biomass_index = n.generators[n.generators.carrier == "biomass"].index
+    n.generators.loc[biomass_index, 'p_nom_max'] = biomass_value
+    #n.generators.loc[biomass_index, 'p_nom_extendable'] = True
+
 
     with memory_logger(
         filename=getattr(snakemake.log, "memory", None), interval=30.0

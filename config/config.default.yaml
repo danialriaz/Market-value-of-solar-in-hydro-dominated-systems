@@ -111,8 +111,8 @@ electricity:
   extendable_carriers:
     Generator: [solar, onwind, offwind-ac, offwind-dc, OCGT]
     StorageUnit: [] # battery, H2
-    Store: [battery, H2]
-    Link: [] # H2 pipeline
+    Store: [H2] #DR: removed battery, H2
+    Link: [H2 pipeline] # H2 pipeline
 
   powerplants_filter: (DateOut >= 2023 or DateOut != DateOut) and not (Country == 'Germany' and Fueltype == 'Nuclear')
   custom_powerplants: false
@@ -694,8 +694,8 @@ costs:
     battery: 0.
     battery inverter: 0.
   emission_prices:
-    enable: false
-    co2: 0.
+    enable: true
+    co2: 1000
     co2_monthly_prices: false
 
 # docs in https://pypsa-eur.readthedocs.io/en/latest/configuration.html#clustering

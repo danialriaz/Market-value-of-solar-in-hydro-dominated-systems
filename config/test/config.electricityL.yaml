@@ -13,7 +13,7 @@ run:
 
 scenario:
   clusters:
-  - 5
+  - 1
   opts:
   - Co2L-24H
 
@@ -21,9 +21,41 @@ clustering:
   aggregation_strategies:
     buses:
       count: min
-  exclude_carriers: ["OCGT", "offwind-ac", "coal"]
+  exclude_carriers: [] # removed "OCGT", "offwind-ac", "coal"
 
-countries: ['DE', 'AT']
+countries: ['DE']
+
+costs:
+  year: 2030
+  version: v0.8.0
+  rooftop_share: 0.14  # based on the potentials, assuming  (0.1 kW/m2 and 10 m2/person)
+  social_discountrate: 0.02
+  fill_values:
+    FOM: 0
+    VOM: 0
+    efficiency: 1
+    fuel: 0
+    investment: 0
+    lifetime: 25
+    "CO2 intensity": 0
+    "discount rate": 0.07
+  # Marginal and capital costs can be overwritten
+  # capital_cost:
+  #   onwind: 500
+  marginal_cost:
+    solar: 0.01
+    onwind: 0.015
+    offwind: 0.015
+    hydro: 0.
+    H2: 0.
+    electrolysis: 0.
+    fuel cell: 0.
+    battery: 0.
+    battery inverter: 0.
+  emission_prices:
+    enable: true
+    co2: 50
+    co2_monthly_prices: false
 
 snapshots:
   start: "2013-01-01"
@@ -33,13 +65,13 @@ electricity:
   co2limit: 100.e+6
 
   extendable_carriers:
-    Generator: [nuclear, oil, OCGT, CCGT, coal, lignite, biomass, hydro]  # DR: Removed solar and wind
-    StorageUnit: [battery]
-    Store: [H2]
-    Link: [H2 pipeline]
+    Generator: [nuclear, oil, OCGT, CCGT, coal, lignite, biomass]  # DR: Removed solar, wind and hydro
+    StorageUnit: [] # Removed battery
+    Store: [H2] #H2
+    Link: [H2 pipeline] #H2 pipeline
 
   conventional_carriers: [nuclear, oil, OCGT, CCGT, coal, lignite, geothermal, biomass]
-  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, hydro]
+  renewable_carriers: [solar, onwind, offwind-ac, offwind-dc, ror, phs, hydro]
   
 
 atlite:

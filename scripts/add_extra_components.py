@@ -184,45 +184,108 @@ def attach_stores(n, costs, extendable_carriers):
 
 
 def attach_hydrogen_pipelines(n, costs, extendable_carriers):
-    as_stores = extendable_carriers.get("Store", [])
+     as_stores = extendable_carriers.get("Store", [])
 
-    if "H2 pipeline" not in extendable_carriers.get("Link", []):
+     if "H2 pipeline" not in extendable_carriers.get("Link", []):
         return
 
-    assert "H2" in as_stores, (
-        "Attaching hydrogen pipelines requires hydrogen "
-        "storage to be modelled as Store-Link-Bus combination. See "
-        "`config.yaml` at `electricity: extendable_carriers: Store:`."
-    )
+     assert "H2" in as_stores, (
+         "Attaching hydrogen pipelines requires hydrogen "
+         "storage to be modelled as Store-Link-Bus combination. See "
+         "`config.yaml` at `electricity: extendable_carriers: Store:`."
+     )
 
-    # determine bus pairs
-    attrs = ["bus0", "bus1", "length"]
-    candidates = pd.concat(
-        [n.lines[attrs], n.links.query('carrier=="DC"')[attrs]]
-    ).reset_index(drop=True)
+     # determine bus pairs
+     attrs = ["bus0", "bus1", "length"]
+     candidates = pd.concat(
+         [n.lines[attrs], n.links.query('carrier=="DC"')[attrs]]
+     ).reset_index(drop=True)
 
-    # remove bus pair duplicates regardless of order of bus0 and bus1
-    h2_links = candidates[
-        ~pd.DataFrame(np.sort(candidates[["bus0", "bus1"]])).duplicated()
-    ]
-    h2_links.index = h2_links.apply(lambda c: f"H2 pipeline {c.bus0}-{c.bus1}", axis=1)
+     # remove bus pair duplicates regardless of order of bus0 and bus1
+     h2_links = candidates[
+         ~pd.DataFrame(np.sort(candidates[["bus0", "bus1"]])).duplicated()
+     ]
+     h2_links.index = h2_links.apply(lambda c: f"H2 pipeline {c.bus0}-{c.bus1}", axis=1)
 
-    # add pipelines
-    n.add("Carrier", "H2 pipeline")
+     # add pipelines
+     n.add("Carrier", "H2 pipeline")
 
-    n.madd(
-        "Link",
-        h2_links.index,
-        bus0=h2_links.bus0.values + " H2",
-        bus1=h2_links.bus1.values + " H2",
-        p_min_pu=-1,
-        p_nom_extendable=True,
-        length=h2_links.length.values,
-        capital_cost=costs.at["H2 pipeline", "capital_cost"] * h2_links.length,
-        efficiency=costs.at["H2 pipeline", "efficiency"],
-        carrier="H2 pipeline",
-    )
+     n.madd(
+         "Link",
+         h2_links.index,
+         bus0=h2_links.bus0.values + " H2",
+         bus1=h2_links.bus1.values + " H2",
+         p_min_pu=-1,
+         p_nom_extendable=True,
+         length=h2_links.length.values,
+         capital_cost=costs.at["H2 pipeline", "capital_cost"] * h2_links.length,
+         efficiency=costs.at["H2 pipeline", "efficiency"],
+         carrier="H2 pipeline",
+     )
 
+# Alternate version: 
+     
+# def attach_hydrogen_pipelines(n, costs, extendable_carriers):
+#     # Check if H2 pipeline is present in the extendable_carriers
+#     if "H2 pipeline" not in extendable_carriers.get("Link", []):
+#         return  # No need to attach hydrogen pipelines if not present
+
+#     # Check if hydrogen storage is present in extendable carriers
+#     as_stores = extendable_carriers.get("Store", [])
+#     if "H2" not in as_stores:
+#         # Log a warning or raise an exception indicating that hydrogen storage is required
+#         raise ValueError("Hydrogen storage is required but not found in extendable carriers.")
+
+#     # Rest of the function remains unchanged
+#     attrs = ["bus0", "bus1", "length"]
+#     candidates = pd.concat([n.lines[attrs], n.links.query('carrier=="DC"')[attrs]]).reset_index(drop=True)
+#     h2_links = candidates[~pd.DataFrame(np.sort(candidates[["bus0", "bus1"]])).duplicated()]
+#     h2_links.index = h2_links.apply(lambda c: f"H2 pipeline {c.bus0}-{c.bus1}", axis=1)
+
+#     n.add("Carrier", "H2 pipeline")
+
+#     n.madd(
+#         "Link",
+#         h2_links.index,
+#         bus0=h2_links.bus0.values + " H2",
+#         bus1=h2_links.bus1.values + " H2",
+#         p_min_pu=-1,
+#         p_nom_extendable=True,
+#         length=h2_links.length.values,
+#         capital_cost=costs.at["H2 pipeline", "capital_cost"] * h2_links.length,
+#         efficiency=costs.at["H2 pipeline", "efficiency"],
+#         carrier="H2 pipeline",
+#     )
+
+
+# Alternate version: 
+     
+# if __name__ == "__main__":
+#     if "snakemake" not in globals():
+#         from _helpers import mock_snakemake
+
+#         snakemake = mock_snakemake("add_extra_components", simpl="", clusters=5)
+#     configure_logging(snakemake)
+#     set_scenario_config(snakemake)
+
+#     n = pypsa.Network(snakemake.input.network)
+#     extendable_carriers = snakemake.params.extendable_carriers
+#     max_hours = snakemake.params.max_hours
+
+#     Nyears = n.snapshot_weightings.objective.sum() / 8760.0
+#     costs = load_costs(
+#         snakemake.input.tech_costs, snakemake.params.costs, max_hours, Nyears
+#     )
+
+#     attach_storageunits(n, costs, extendable_carriers, max_hours)
+#     attach_stores(n, costs, extendable_carriers)
+#     attach_hydrogen_pipelines(n, costs, extendable_carriers)
+
+#     sanitize_carriers(n, snakemake.config)
+#     sanitize_locations(n)
+
+#     n.meta = dict(snakemake.config, **dict(wildcards=dict(snakemake.wildcards)))
+#     n.export_to_netcdf(snakemake.output[0])
 
 if __name__ == "__main__":
     if "snakemake" not in globals():
@@ -243,7 +306,12 @@ if __name__ == "__main__":
 
     attach_storageunits(n, costs, extendable_carriers, max_hours)
     attach_stores(n, costs, extendable_carriers)
-    attach_hydrogen_pipelines(n, costs, extendable_carriers)
+    
+    try:
+        attach_hydrogen_pipelines(n, costs, extendable_carriers)
+    except ValueError as e:
+        # Log a warning or print the exception message indicating that hydrogen storage is required
+        print(e)
 
     sanitize_carriers(n, snakemake.config)
     sanitize_locations(n)
