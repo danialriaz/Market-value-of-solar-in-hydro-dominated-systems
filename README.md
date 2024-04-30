@@ -10,10 +10,12 @@ Hydropower meets the majority of electricity demand in 28 emerging and developin
 
 ## Repository Structure
 
+This repository is branched from the PyPSA-Eur's main repository. It should be used along with Supplementary code provided [here](https://github.com/danialriaz/Supplementary-material---thesis). 
 - `configs` contains configuration files for PyPSA-Eur for different scenarios.
-- `working files` contains the Jupyter notebooks used for the evaluation of results.
-- `paper` contains the `pdf` files for the paper.
-- `workflows` contains the PyPSA-Eur and technology-data workflows.
+- `output files` contains the `.nc` network outputs that were used to extract the data.
+- `rules` and 'scripts' have been modified based on the scenarios conducted. The author's additions are marked with #DR
+- `analytical files` contains the Jupyter notebooks used for the evaluation of results.
+- data used for this model can be retrieved from [here](https://zenodo.org/records/7647522)
 
 ## Installation and Usage
 
